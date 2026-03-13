@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emily BD — ManageAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #FFFFFF;
+  --surface: #F5F6F8;
+  --surface2: #EDF0F4;
+  --border: #E2E6EC;
+  --nav: #1E3348;
+  --accent: #4A8FD6;
+  --accent-light: #EBF3FC;
+  --accent-mid: #6BAAE0;
+  --text: #1E293B;
+  --text-mid: #475569;
+  --text-dim: #7A8B9A;
+  --green: #16A34A;
+  --green-light: #E8F8EE;
+  --amber: #D97706;
+  --amber-light: #FEF8E8;
+  --red: #DC2626;
+  --red-light: #FEF2F2;
+  --purple: #7C3AED;
+  --purple-light: #EDE9FE;
+  --teal: #0D9488;
+  --teal-light: #CCFBF1;
+  --mono: 'JetBrains Mono', monospace;
+  --font: 'Montserrat', sans-serif;
+}
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+input, select, textarea, button { font-family: var(--font); }
+button { cursor: pointer; }
+a { color: var(--accent); text-decoration: none; }
+
+/* ── LOGIN ────────────────────────────────────────────── */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--nav);
+  display: flex; align-items: center; justify-content: center;
+}
+#login-screen.hidden { display: none; }
+.login-card {
+  background: #fff; border-radius: 16px; padding: 40px 44px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+}
+.login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+.login-logo .brand { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.login-logo .brand .m { color: var(--nav); }
+.login-logo .brand .ai { color: var(--accent); }
+.login-logo .tag { font-size: 11px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.login-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--text-mid); margin-bottom: 28px; }
+.login-field { margin-bottom: 16px; }
+.login-field label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-mid); margin-bottom: 6px; }
+.login-field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none; transition: border-color 0.2s; }
+.login-field input:focus { border-color: var(--accent); }
+.login-error { background: var(--red-light); color: var(--red); font-size: 12px; padding: 9px 12px; border-radius: 7px; margin-bottom: 14px; display: none; }
+.btn-login { width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-login:hover { background: #3a7ec4; }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── PAGE WRAPPER ─────────────────────────────────────── */
+#app-wrapper { display: none; }
+.page { max-width: 1320px; margin: 0 auto; padding: 32px 40px 60px; }
+
+/* ── HEADER ───────────────────────────────────────────── */
+.header {
+  display: flex; align-items: center; gap: 16px;
+  padding-bottom: 24px; border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.wordmark { display: flex; align-items: baseline; }
+.wordmark .m { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; }
+.wordmark .ai { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; }
+.h-div { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+.h-meta { display: flex; flex-direction: column; gap: 1px; }
+.h-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.h-sub { font-size: 11px; font-weight: 500; color: var(--text-dim); font-family: var(--mono); }
+.h-status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--green); }
+.h-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulseDot 2s infinite; }
+
+/* ── PAGE TITLE ───────────────────────────────────────── */
+.page-title { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; margin-bottom: 6px; }
+.page-sub { font-size: 14px; font-weight: 400; color: var(--text-mid); line-height: 1.7; max-width: 580px; margin-bottom: 28px; }
+
+/* ── STATS ROW ────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.stat-card {
+  padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--bg); text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.stat-num { font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--text); line-height: 1; }
+.stat-label { font-size: 11px; font-weight: 700; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── MODE TABS ────────────────────────────────────────── */
+.mode-tabs {
+  display: flex; gap: 3px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px; width: fit-content; margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.mode-tab {
+  padding: 10px 18px; border-radius: 7px; border: none;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+  transition: all 0.2s ease; color: var(--text-dim); background: transparent;
+}
+.mode-tab.active { background: var(--nav); color: #fff; }
+.mode-tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+/* ── CARDS ────────────────────────────────────────────── */
+.card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 16px;
+  padding: 28px; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.25s ease;
+}
+.card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.card-sub { font-size: 12px; font-weight: 500; color: var(--text-mid); line-height: 1.6; margin-bottom: 22px; }
+
+/* ── DASH KPI CARDS ───────────────────────────────────── */
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.dash-kpi {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.dash-kpi:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
+.dash-kpi-accent { border-left: 3px solid var(--accent); }
+.dash-kpi-green { border-left: 3px solid var(--green); }
+.dash-kpi-amber { border-left: 3px solid var(--amber); }
+.dash-kpi-purple { border-left: 3px solid var(--purple); }
+.dash-kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 8px; }
+.dash-kpi-value { font-size: 32px; font-weight: 800; font-family: var(--mono); color: var(--text); line-height: 1; margin-bottom: 4px; }
+.dash-kpi-sub { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+
+/* ── SECTION TITLES ───────────────────────────────────── */
+.dash-section-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.dash-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── FORM FIELDS ──────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 13px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  color: var(--text); font-size: 12px; font-weight: 500;
+  transition: border-color 0.2s; outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); background: var(--bg); }
+.field input::placeholder, .field textarea::placeholder { color: var(--text-dim); font-weight: 400; }
+.field textarea { resize: vertical; min-height: 90px; line-height: 1.65; font-size: 12px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* ── BUTTONS ──────────────────────────────────────────── */
+.btn-primary {
+  padding: 13px 24px; border-radius: 10px; border: none;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
+  transition: all 0.2s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-mid); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,143,214,0.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary {
+  padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); font-size: 12px; font-weight: 700;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { background: var(--surface); border-color: var(--text-dim); }
+
+/* ── FILTER CHIPS ─────────────────────────────────────── */
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-chip {
+  padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--text-dim); background: var(--bg);
+  transition: all 0.15s;
+}
+.filter-chip.active { background: var(--nav); color: #fff; border-color: var(--nav); }
+.filter-chip:hover:not(.active) { border-color: var(--text-dim); color: var(--text); }
+
+/* ── BADGES ───────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.badge-blue { background: var(--accent-light); color: var(--accent); }
+.badge-green { background: var(--green-light); color: var(--green); }
+.badge-amber { background: var(--amber-light); color: var(--amber); }
+.badge-red { background: var(--red-light); color: var(--red); }
+.badge-purple { background: var(--purple-light); color: var(--purple); }
+.badge-teal { background: var(--teal-light); color: var(--teal); }
+.badge-gray { background: var(--surface); color: var(--text-mid); }
+.type-investor { background: var(--purple-light); color: var(--purple); }
+.type-client { background: #DBEAFE; color: #1D4ED8; }
+.type-partner { background: var(--teal-light); color: var(--teal); }
+.type-talent { background: var(--amber-light); color: var(--amber); }
+
+/* ── STATUS CHIPS ─────────────────────────────────────── */
+.status-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.status-chip.running { background: var(--accent-light); color: var(--accent); }
+.status-chip.complete { background: var(--green-light); color: var(--green); }
+.status-chip.pending { background: var(--amber-light); color: var(--amber); }
+.status-chip.failed { background: var(--red-light); color: var(--red); }
+.status-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.status-chip.running .status-chip-dot { animation: pulseDot 1.2s infinite; }
+
+/* ── DATA TABLE ───────────────────────────────────────── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; background: var(--surface); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); font-weight: 500; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--surface); }
+
+/* ── SCORE DIST BARS ──────────────────────────────────── */
+.score-dist { display: flex; align-items: flex-end; gap: 4px; height: 64px; margin-bottom: 8px; }
+.score-dist-bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--accent-light); transition: height 0.6s cubic-bezier(0.16,1,0.3,1); min-height: 3px; position: relative; }
+.score-dist-bar:hover { background: var(--accent); }
+.score-dist-bar:hover .score-dist-tooltip { display: block; }
+.score-dist-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--nav); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; white-space: nowrap; z-index: 10; }
+.score-dist-labels { display: flex; justify-content: space-between; font-size: 9px; font-weight: 600; color: var(--text-dim); font-family: var(--mono); }
+
+/* ── HIT RATE BARS ────────────────────────────────────── */
+.hit-rate-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hit-rate-label { font-size: 11px; font-weight: 700; color: var(--text-mid); width: 80px; flex-shrink: 0; }
+.hit-rate-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.hit-rate-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); background: var(--accent); }
+.hit-rate-pct { font-size: 12px; font-weight: 700; font-family: var(--mono); color: var(--text); width: 38px; text-align: right; flex-shrink: 0; }
+
+/* ── PIPELINE LIST ────────────────────────────────────── */
+.queue-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.queue-item:last-child { border-bottom: none; }
+.queue-name { font-size: 12px; font-weight: 700; color: var(--text); }
+.queue-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+/* ── EVENT STREAM ─────────────────────────────────────── */
+.event-stream {
+  background: #0F1923; border-radius: 10px; padding: 14px;
+  font-family: var(--mono); font-size: 11px; color: #7dd3fc;
+  min-height: 160px; max-height: 280px; overflow-y: auto;
+}
+.event-line { margin-bottom: 4px; opacity: 0; animation: fadeIn 0.3s forwards; }
+.event-ts { color: #475569; }
+.event-ok { color: #4ade80; }
+.event-err { color: #f87171; }
+.event-info { color: #7dd3fc; }
+
+/* ── EMILY CHAT ───────────────────────────────────────── */
+.emily-layout { display: flex; gap: 20px; }
+.emily-left { width: 280px; flex-shrink: 0; }
+.emily-right { flex: 1; display: flex; flex-direction: column; }
+.emily-profile-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.emily-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--nav); box-shadow: 0 6px 24px rgba(0,0,0,0.18); display: block; margin: 0 auto; }
+.emily-name { font-size: 18px; font-weight: 700; color: var(--nav); text-align: center; margin-top: 14px; }
+.emily-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); text-align: center; margin-top: 4px; }
+.emily-divider { height: 1px; background: var(--border); margin: 16px 0; }
+.emily-online { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 13px; color: var(--green); font-weight: 600; }
+.emily-online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulseDot 2s infinite; }
+.emily-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 14px; }
+.emily-pill { background: var(--surface); border-radius: 20px; padding: 6px 12px; font-size: 11px; text-align: center; }
+.emily-pill-label { color: var(--text-dim); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.emily-pill-value { font-weight: 700; color: var(--text); margin-top: 2px; font-family: var(--mono); }
+.emily-cap-list { list-style: none; padding: 0; margin: 0; }
+.emily-cap-list li { font-size: 12px; color: var(--text-mid); line-height: 1.8; padding-left: 18px; position: relative; font-weight: 500; }
+.emily-cap-list li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+.emily-chat-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: flex; flex-direction: column; flex: 1; }
+.emily-chat-header { background: var(--nav); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 10px; }
+.emily-chat-header img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.emily-chat-header .name { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.emily-chat-header .name-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.emily-chat-header .sub { font-size: 11px; color: rgba(255,255,255,0.55); }
+.chat-clear-btn { margin-left: auto; background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 6px 10px; font-size: 14px; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.15s; }
+.chat-clear-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+.chat-messages { min-height: 340px; max-height: 480px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+.chat-message { display: flex; gap: 10px; max-width: 80%; }
+.chat-message.user { margin-left: auto; flex-direction: row-reverse; }
+.chat-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.chat-avatar.user-av { background: var(--nav); color: white; }
+.chat-bubble { padding: 12px 16px; font-size: 13px; line-height: 1.6; }
+.chat-bubble.emily { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 16px 16px 16px 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.chat-bubble.user { background: var(--nav); color: white; border-radius: 16px 16px 4px 16px; }
+.chat-bubble p { margin-bottom: 6px; }
+.chat-bubble p:last-child { margin-bottom: 0; }
+.chat-bubble ul { padding-left: 16px; margin-top: 4px; }
+.chat-bubble li { margin-bottom: 3px; }
+.chat-bubble strong { font-weight: 700; }
+.chat-typing { display: flex; gap: 4px; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px 16px 16px 4px; width: fit-content; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+.chat-input-area { display: flex; align-items: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border); }
+.chat-input {
+  flex: 1; border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 14px; font-size: 13px; resize: none; height: 44px;
+  max-height: 120px; font-family: var(--font); outline: none;
+  transition: border-color 0.2s; background: var(--surface);
+}
+.chat-input:focus { border-color: var(--accent); background: var(--bg); }
+.chat-send {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--nav);
+  color: #fff; border: none; font-size: 18px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+}
+.chat-send:hover { background: #2a4a6e; }
+.chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+.quick-prompts { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+.quick-prompt {
+  border: 1px solid var(--border); border-radius: 20px; padding: 7px 14px;
+  font-size: 12px; background: var(--bg); color: var(--text-mid);
+  cursor: pointer; transition: all 0.15s; font-family: var(--font);
+}
+.quick-prompt:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+/* ── OUTREACH ─────────────────────────────────────────── */
+.outreach-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.outreach-item:last-child { border-bottom: none; }
+.outreach-name { font-size: 13px; font-weight: 700; }
+.outreach-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.outreach-preview { font-size: 12px; color: var(--text-mid); margin-top: 4px; }
+
+/* ── HISTORY ──────────────────────────────────────────── */
+.history-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.history-item:last-child { border-bottom: none; }
+.history-title { font-size: 13px; font-weight: 700; }
+.history-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ── FEEDBACK ─────────────────────────────────────────── */
+.star-rating { display: flex; gap: 6px; margin-top: 6px; }
+.star { font-size: 28px; cursor: pointer; opacity: 0.3; transition: opacity 0.15s; color: var(--amber); }
+.star.active { opacity: 1; }
+
+/* ── RUN CARD ─────────────────────────────────────────── */
+.run-card { border-left: 3px solid var(--accent); padding: 14px 16px; background: var(--surface); border-radius: 0 10px 10px 0; margin-bottom: 12px; }
+
+/* ── SPINNER ──────────────────────────────────────────── */
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+
+/* ── EMPTY / LOADING ──────────────────────────────────── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+.empty-msg { font-size: 13px; font-weight: 600; }
+.loading-row { padding: 20px; text-align: center; font-size: 12px; color: var(--text-dim); font-weight: 600; }
+
+/* ── SECTION LABEL ────────────────────────────────────── */
+.section-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+/* ── FOOTER ───────────────────────────────────────────── */
+.footer { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.footer-brand { display: flex; align-items: baseline; }
+.footer-brand .m { font-size: 12px; font-weight: 700; color: var(--text); }
+.footer-brand .ai { font-size: 12px; font-weight: 700; color: var(--accent); }
+.footer-meta { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+.footer-conf { font-size: 10px; font-weight: 700; color: var(--text-dim); font-family: var(--mono); letter-spacing: 0.06em; }
+
+/* ── MODE CONTENT ─────────────────────────────────────── */
+.mode-content { animation: fadeIn 0.25s ease; }
+.mode-content.hidden { display: none; }
+
+/* ── ANIMATIONS ───────────────────────────────────────── */
+@keyframes pulseDot { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.4);opacity:1} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── RESPONSIVE ───────────────────────────────────────── */
+@media (max-width: 1100px) { .dash-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) {
+  .page { padding: 20px; }
+  .dash-grid-2 { grid-template-columns: 1fr; }
+  .row-2, .row-3 { grid-template-columns: 1fr; }
+  .emily-layout { flex-direction: column; }
+  .emily-left { width: 100%; }
+  .mode-tabs { overflow-x: auto; }
+}
+@media (max-width: 600px) { .dash-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ LOGIN ══════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="brand"><span class="m">MANAGE</span><span class="ai">AI</span></div>
+      <div class="tag">Emily BD</div>
+    </div>
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to access the BD intelligence system</div>
+    <div class="login-error" id="login-error">Invalid email or password. Please try again.</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@manageai.io" autocomplete="email" onkeydown="if(event.key==='Enter')window._login()">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')window._login()">
+    </div>
+    <button class="btn-login" id="login-btn" onclick="window._login()">Sign In</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ APP ══════════════════════ -->
+<div id="app-wrapper">
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="wordmark"><span class="m">MANAGE</span><span class="ai">AI</span></div>
+    <div class="h-div"></div>
+    <div class="h-meta">
+      <div class="h-title">Emily BD</div>
+      <div class="h-sub">BD Intelligence · Dave Albertson</div>
+    </div>
+    <div class="h-status">
+      <div class="h-dot"></div>
+      <span id="system-status">System Online</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:auto;">
+      <div style="background:var(--accent-light);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;color:var(--accent);" id="header-user">—</div>
+      <button onclick="signOut()" style="background:none;border:1.5px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;font-family:var(--font);">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Page Title -->
+  <div class="page-title">BD Intelligence Dashboard</div>
+  <p class="page-sub">Emily's full pipeline — investors, clients, partners, and talent. Hunt, score, and act on every opportunity in one place.</p>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="hs-today">—</div>
+      <div class="stat-label">Submitted Today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="hs-total">—</div>
+      <div class="stat-label">Total Runs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3–5m</div>
+      <div class="stat-label">Avg Run Time</div>
+    </div>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('dashboard')" id="tab-dashboard">📊 Dashboard</button>
+    <button class="mode-tab" onclick="setMode('investor')" id="tab-investor">💰 Investor Hunt</button>
+    <button class="mode-tab" onclick="setMode('client')" id="tab-client">🏢 Client Hunt</button>
+    <button class="mode-tab" onclick="setMode('talent')" id="tab-talent">🤝 Talent + Partners</button>
+    <button class="mode-tab" onclick="setMode('targets')" id="tab-targets">🎯 All Targets</button>
+    <button class="mode-tab" onclick="setMode('current')" id="tab-current">⚡ Current Run</button>
+    <button class="mode-tab" onclick="setMode('history')" id="tab-history">📋 History</button>
+    <button class="mode-tab" onclick="setMode('emily')" id="tab-emily">👩‍💼 Emily</button>
+    <button class="mode-tab" onclick="setMode('outreach')" id="tab-outreach">📤 Outreach</button>
+    <button class="mode-tab" onclick="setMode('feedback')" id="tab-feedback">💬 Feedback</button>
+  </div>
+
+  <!-- ══════════════ DASHBOARD ══════════════ -->
+  <div id="mode-dashboard" class="mode-content">
+
+    <div class="dash-grid">
+      <div class="dash-kpi dash-kpi-accent">
+        <div class="dash-kpi-label">Total Targets</div>
+        <div class="dash-kpi-value" id="kpi-total">—</div>
+        <div class="dash-kpi-sub">All time in Supabase</div>
+      </div>
+      <div class="dash-kpi dash-kpi-green">
+        <div class="dash-kpi-label">Added This Week</div>
+        <div class="dash-kpi-value" id="kpi-week">—</div>
+        <div class="dash-kpi-sub">Last 7 days</div>
+      </div>
+      <div class="dash-kpi dash-kpi-accent">
+        <div class="dash-kpi-label">Avg Fit Score</div>
+        <div class="dash-kpi-value" id="kpi-score">—</div>
+        <div class="dash-kpi-sub">Across all scored targets</div>
+      </div>
+      <div class="dash-kpi dash-kpi-amber">
+        <div class="dash-kpi-label">Avg Completeness</div>
+        <div class="dash-kpi-value" id="kpi-complete">—</div>
+        <div class="dash-kpi-sub">Data quality score</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-kpi dash-kpi-green">
+        <div class="dash-kpi-label">Emails Found</div>
+        <div class="dash-kpi-value" id="kpi-emails">—</div>
+        <div class="dash-kpi-sub">Contacts with email</div>
+      </div>
+      <div class="dash-kpi dash-kpi-accent">
+        <div class="dash-kpi-label">LinkedIn Found</div>
+        <div class="dash-kpi-value" id="kpi-linkedin">—</div>
+        <div class="dash-kpi-sub">Verified + constructed</div>
+      </div>
+      <div class="dash-kpi dash-kpi-accent">
+        <div class="dash-kpi-label">Outreach Sent</div>
+        <div class="dash-kpi-value" id="kpi-outreach">—</div>
+        <div class="dash-kpi-sub">Email + LinkedIn</div>
+      </div>
+      <div class="dash-kpi dash-kpi-purple">
+        <div class="dash-kpi-label">Responses</div>
+        <div class="dash-kpi-value" id="kpi-responses">—</div>
+        <div class="dash-kpi-sub">Replies received</div>
+      </div>
+    </div>
+
+    <div class="dash-grid-2">
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div class="dash-section-title">Targets by Type</div>
+        <div class="hit-rate-row">
+          <div class="hit-rate-label">Investors</div>
+          <div class="hit-rate-track"><div class="hit-rate-fill" id="bar-investor" style="width:0%;background:var(--purple);"></div></div>
+          <div class="hit-rate-pct" id="pct-investor">—</div>
+        </div>
+        <div class="hit-rate-row">
+          <div class="hit-rate-label">Clients</div>
+          <div class="hit-rate-track"><div class="hit-rate-fill" id="bar-client" style="width:0%;"></div></div>
+          <div class="hit-rate-pct" id="pct-client">—</div>
+        </div>
+        <div class="hit-rate-row">
+          <div class="hit-rate-label">Partners</div>
+          <div class="hit-rate-track"><div class="hit-rate-fill" id="bar-partner" style="width:0%;background:var(--teal);"></div></div>
+          <div class="hit-rate-pct" id="pct-partner">—</div>
+        </div>
+        <div class="hit-rate-row">
+          <div class="hit-rate-label">Talent</div>
+          <div class="hit-rate-track"><div class="hit-rate-fill" id="bar-talent" style="width:0%;background:var(--amber);"></div></div>
+          <div class="hit-rate-pct" id="pct-talent">—</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div class="dash-section-title">Fit Score Distribution</div>
+        <div class="score-dist" id="score-dist-bars">
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">0–9</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">10–19</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">20–29</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">30–39</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">40–49</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">50–59</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">60–69</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">70–79</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">80–89</div></div>
+          <div class="score-dist-bar" style="height:10%"><div class="score-dist-tooltip">90+</div></div>
+        </div>
+        <div class="score-dist-labels">
+          <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span>
+          <span>50</span><span>60</span><span>70</span><span>80</span><span>90+</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-grid-2">
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="dash-section-title" style="margin-bottom:0;">Top Targets by Fit Score</div>
+          <button class="btn-secondary" style="font-size:11px;padding:5px 10px;" onclick="loadDashboard()">↻ Refresh</button>
+        </div>
+        <div id="top-targets-list"><div class="loading-row">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div class="dash-section-title">Pipeline Queue</div>
+        <div id="pipeline-queue-list"><div class="loading-row">Loading…</div></div>
+      </div>
+    </div>
+
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- ══════════════ INVESTOR HUNT ══════════════ -->
+  <div id="mode-investor" class="mode-content hidden">
+    <div class="card">
+      <div class="card-title">Investor Hunt</div>
+      <div class="card-sub">Find VCs, PEs, angels, and family offices aligned with AI workforce automation.</div>
+      <div class="row-3">
+        <div class="field">
+          <label>Investor Type</label>
+          <select id="inv-type">
+            <option value="venture_capital">Venture Capital</option>
+            <option value="private_equity">Private Equity</option>
+            <option value="angel">Angel Investor</option>
+            <option value="family_office">Family Office</option>
+            <option value="corporate_vc">Corporate VC</option>
+            <option value="accelerator">Accelerator / Incubator</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Stage Focus</label>
+          <select id="inv-stage">
+            <option value="seed">Seed / Pre-Seed</option>
+            <option value="series_a">Series A</option>
+            <option value="series_b">Series B+</option>
+            <option value="growth">Growth</option>
+            <option value="all">All Stages</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Check Size Range</label>
+          <select id="inv-check">
+            <option value="under_500k">Under $500K</option>
+            <option value="500k_2m">$500K – $2M</option>
+            <option value="2m_10m">$2M – $10M</option>
+            <option value="10m_plus">$10M+</option>
+            <option value="any">Any</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label>Sector Focus (keywords)</label>
+          <input type="text" id="inv-sector" placeholder="AI, automation, SaaS, enterprise software" value="AI, automation, enterprise software, workflow">
+        </div>
+        <div class="field">
+          <label>Geography Preference</label>
+          <select id="inv-geo">
+            <option value="us">United States</option>
+            <option value="us_west">US West Coast</option>
+            <option value="us_east">US East Coast</option>
+            <option value="us_southwest">US Southwest (Phoenix/Denver/Austin)</option>
+            <option value="global">Global</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Your Name</label><input type="text" id="inv-name" placeholder="Dave Albertson"></div>
+        <div class="field"><label>Your Email</label><input type="email" id="inv-email" placeholder="dave@manageai.io"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn-primary" id="inv-submit" onclick="submitInvestorHunt()">💰 Hunt for Investors</button>
+        <span id="inv-status" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CLIENT HUNT ══════════════ -->
+  <div id="mode-client" class="mode-content hidden">
+    <div class="card">
+      <div class="card-title">Client Hunt</div>
+      <div class="card-sub">Find mid-market companies ready for an AI workforce — by vertical, city, and ICP criteria.</div>
+      <div class="row-3">
+        <div class="field">
+          <label>Vertical</label>
+          <select id="cl-vertical">
+            <option value="behavioral_health">Behavioral Health</option>
+            <option value="construction">Construction</option>
+            <option value="medical_transport">Medical Transport</option>
+            <option value="b2b_professional_services">B2B Professional Services</option>
+            <option value="health_wellness">Health &amp; Wellness</option>
+            <option value="home_services">Home Services</option>
+            <option value="automotive_dealerships">Automotive / Dealerships</option>
+            <option value="financial_services">Financial Services &amp; Insurance</option>
+            <option value="hospitality">Hospitality &amp; Food Service</option>
+            <option value="manufacturing">Manufacturing &amp; Distribution</option>
+            <option value="real_estate">Real Estate &amp; Property</option>
+          </select>
+        </div>
+        <div class="field"><label>Target City</label><input type="text" id="cl-city" placeholder="Phoenix"></div>
+        <div class="field"><label>State</label><input type="text" id="cl-state" placeholder="AZ"></div>
+      </div>
+      <div class="row-3">
+        <div class="field">
+          <label>Min Employees</label>
+          <select id="cl-minsize">
+            <option value="10">10+</option>
+            <option value="25">25+</option>
+            <option value="50" selected>50+</option>
+            <option value="100">100+</option>
+            <option value="250">250+</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>AI Readiness Signal</label>
+          <select id="cl-signal">
+            <option value="any">Any</option>
+            <option value="hiring_ops">Hiring for Ops/Tech roles</option>
+            <option value="growth">Recently growing</option>
+            <option value="tooled">Using SaaS tools</option>
+            <option value="problem">Visible process pain</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Max Results</label>
+          <select id="cl-max">
+            <option value="10">10 companies</option>
+            <option value="20">20 companies</option>
+            <option value="30" selected>30 companies</option>
+            <option value="50">50 companies</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Your Name</label><input type="text" id="cl-name" placeholder="Dave Albertson"></div>
+        <div class="field"><label>Your Email</label><input type="email" id="cl-email" placeholder="dave@manageai.io"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn-primary" id="cl-submit" onclick="submitClientHunt()">🏢 Hunt for Clients</button>
+        <span id="cl-status" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ TALENT + PARTNERS ══════════════ -->
+  <div id="mode-talent" class="mode-content hidden">
+    <div class="card">
+      <div class="card-title">Talent + Partners</div>
+      <div class="card-sub">Find employees, system integrators, ISVs, and referral partners for ManageAI.</div>
+      <div class="row-2">
+        <div class="field">
+          <label>Target Type</label>
+          <select id="tp-type">
+            <option value="employee">Employee / Hire</option>
+            <option value="integration_partner">System Integrator / Partner</option>
+            <option value="isv_partner">ISV / Tech Partner</option>
+            <option value="referral_partner">Referral Partner</option>
+            <option value="reseller">Reseller / Agency</option>
+          </select>
+        </div>
+        <div class="field"><label>Role / Specialty</label><input type="text" id="tp-role" placeholder="e.g. Senior n8n Developer, AI Solutions Architect"></div>
+      </div>
+      <div class="row-3">
+        <div class="field"><label>Location</label><input type="text" id="tp-location" placeholder="Remote, Phoenix AZ, etc."></div>
+        <div class="field">
+          <label>Experience Level</label>
+          <select id="tp-level">
+            <option value="any">Any</option>
+            <option value="senior">Senior (5+ years)</option>
+            <option value="mid">Mid (2–5 years)</option>
+            <option value="junior">Junior (0–2 years)</option>
+          </select>
+        </div>
+        <div class="field"><label>Key Skills</label><input type="text" id="tp-skills" placeholder="n8n, Make.com, Claude AI, LangChain"></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Your Name</label><input type="text" id="tp-name" placeholder="Dave Albertson"></div>
+        <div class="field"><label>Your Email</label><input type="email" id="tp-email" placeholder="dave@manageai.io"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn-primary" id="tp-submit" onclick="submitTalentHunt()">🤝 Start Hunt</button>
+        <span id="tp-status" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ ALL TARGETS ══════════════ -->
+  <div id="mode-targets" class="mode-content hidden">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;">All Targets</div>
+          <div style="font-size:13px;color:var(--text-dim);">Every target found across all hunt types — enriched, scored, and ready to act on.</div>
+        </div>
+        <button class="btn-secondary" onclick="exportTargetsCSV()">Export CSV</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <div class="filter-chips">
+          <button class="filter-chip active" onclick="filterTargets('all',this)">All</button>
+          <button class="filter-chip" onclick="filterTargets('investor',this)">💰 Investors</button>
+          <button class="filter-chip" onclick="filterTargets('client',this)">🏢 Clients</button>
+          <button class="filter-chip" onclick="filterTargets('partner',this)">🤝 Partners</button>
+          <button class="filter-chip" onclick="filterTargets('talent',this)">👤 Talent</button>
+        </div>
+        <select id="target-score-filter" onchange="filterTargets(currentTargetType)" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:var(--font);color:var(--text);outline:none;background:var(--surface);">
+          <option value="all">All Scores</option>
+          <option value="90">90+ Priority</option>
+          <option value="70">70+ Qualified</option>
+          <option value="50">50+ Developing</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Title</th><th>Company</th><th>Type</th>
+              <th>Fit Score</th><th>Complete</th><th>Email</th><th>LinkedIn</th><th>Added</th>
+            </tr>
+          </thead>
+          <tbody id="targets-tbody">
+            <tr><td colspan="10" class="loading-row">Loading targets…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+        <span id="targets-count" style="font-size:12px;color:var(--text-dim);font-weight:600;">Showing 0 of 0</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary" id="targets-prev" onclick="targetsPage('prev')">← Previous</button>
+          <button class="btn-secondary" id="targets-next" onclick="targetsPage('next')">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CURRENT RUN ══════════════ -->
+  <div id="mode-current" class="mode-content hidden">
+    <div class="dash-grid-2">
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="dash-section-title" style="margin-bottom:0;">⚡ Active Runs</div>
+          <span id="active-run-count" class="badge badge-blue">— running</span>
+        </div>
+        <div id="active-runs-list"><div class="loading-row">Loading active runs…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:0;padding:22px;">
+        <div class="dash-section-title">📡 Live Event Stream</div>
+        <div class="event-stream" id="event-stream">
+          <div class="event-line"><span class="event-ts">[system]</span> <span class="event-info">Emily BD — waiting for pipeline activity…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ HISTORY ══════════════ -->
+  <div id="mode-history" class="mode-content hidden">
+    <div class="card">
+      <div class="card-title">Run History</div>
+      <div class="card-sub">All past Emily BD pipeline runs from Supabase.</div>
+      <div id="history-list"><div class="loading-row">Loading history…</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EMILY CHAT ══════════════ -->
+  <div id="mode-emily" class="mode-content hidden">
+    <div class="emily-layout">
+      <!-- Left: Profile Card -->
+      <div class="emily-left">
+        <div class="emily-profile-card">
+          <img src="https://manageai.io/wp-content/uploads/2026/03/Ctornabe_professional_headshot_of_a_woman_with_long_hair_warm_71abd47d-b08d-462d-9c74-3e4f9a56e6e5_3.webp" alt="Emily" class="emily-photo">
+          <div class="emily-name">Emily</div>
+          <div class="emily-title">Senior BD Executive · ManageAI</div>
+          <div class="emily-divider"></div>
+          <div class="emily-online"><span class="emily-online-dot"></span> Online and Ready</div>
+          <div class="emily-pills">
+            <div class="emily-pill"><div class="emily-pill-label">Targets</div><div class="emily-pill-value" id="emily-stat-targets">—</div></div>
+            <div class="emily-pill"><div class="emily-pill-label">Avg Fit</div><div class="emily-pill-value" id="emily-stat-score">—</div></div>
+            <div class="emily-pill"><div class="emily-pill-label">Outreach</div><div class="emily-pill-value" id="emily-stat-outreach">—</div></div>
+            <div class="emily-pill"><div class="emily-pill-label">Responses</div><div class="emily-pill-value" id="emily-stat-responses">—</div></div>
+          </div>
+          <div class="emily-divider"></div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">What Emily Handles</div>
+          <ul class="emily-cap-list">
+            <li>Daily briefing — what Dave should act on now</li>
+            <li>Top investor prospects ranked and ready</li>
+            <li>Client pipeline with vertical breakdown</li>
+            <li>Draft outreach emails and LinkedIn DMs</li>
+            <li>Flag targets untouched for 5+ days</li>
+            <li>Tell Dave which targets to cut and why</li>
+            <li>Cross-reference contacts vs Pipedrive</li>
+            <li>Summarize pipeline health</li>
+          </ul>
+        </div>
+      </div>
+      <!-- Right: Chat -->
+      <div class="emily-right">
+        <div class="quick-prompts">
+          <button class="quick-prompt" onclick="quickPrompt('Give me my full BD briefing for today')">🌅 Today's briefing</button>
+          <button class="quick-prompt" onclick="quickPrompt('Who are the top investors I should be talking to right now?')">💰 Top investors</button>
+          <button class="quick-prompt" onclick="quickPrompt('What clients are closest to being ready for ManageAI?')">🏢 Hottest clients</button>
+          <button class="quick-prompt" onclick="quickPrompt('Which targets have I not touched in over 5 days?')">⚠️ Stale targets</button>
+          <button class="quick-prompt" onclick="quickPrompt('Draft a cold email to a VC firm focused on AI automation')">✉️ Draft investor email</button>
+          <button class="quick-prompt" onclick="quickPrompt('Cross-check my pipeline against Pipedrive open deals')">🔗 Pipedrive check</button>
+        </div>
+        <div class="emily-chat-card">
+          <div class="emily-chat-header">
+            <img src="https://manageai.io/wp-content/uploads/2026/03/Ctornabe_professional_headshot_of_a_woman_with_long_hair_warm_71abd47d-b08d-462d-9c74-3e4f9a56e6e5_3.webp" alt="Emily">
+            <div>
+              <div class="name">Emily <span class="name-dot"></span></div>
+              <div class="sub">BD Executive · Connected to pipeline + Pipedrive</div>
+            </div>
+            <button class="chat-clear-btn" onclick="clearChat()" title="Clear chat">🗑️</button>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-message">
+              <div class="chat-avatar"><img src="https://manageai.io/wp-content/uploads/2026/03/Ctornabe_professional_headshot_of_a_woman_with_long_hair_warm_71abd47d-b08d-462d-9c74-3e4f9a56e6e5_3.webp" alt="Emily"></div>
+              <div class="chat-bubble emily">Hey Dave. I'm Emily — your BD executive. I'm plugged into your full pipeline across investors, clients, partners, and talent. Tell me what you need, or hit "Today's briefing" and I'll tell you exactly what to focus on.</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask Emily anything about the pipeline…" rows="1" onkeydown="chatKeydown(event)" oninput="autoResize(this)"></textarea>
+            <button class="chat-send" id="chat-send" onclick="sendChat()">▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ OUTREACH ══════════════ -->
+  <div id="mode-outreach" class="mode-content hidden">
+    <div class="dash-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="dash-kpi dash-kpi-accent">
+        <div class="dash-kpi-label">Total Sent</div>
+        <div class="dash-kpi-value" id="out-total">—</div>
+        <div class="dash-kpi-sub">Email + LinkedIn</div>
+      </div>
+      <div class="dash-kpi dash-kpi-green">
+        <div class="dash-kpi-label">Responses</div>
+        <div class="dash-kpi-value" id="out-responses">—</div>
+        <div class="dash-kpi-sub">Replies received</div>
+      </div>
+      <div class="dash-kpi dash-kpi-amber">
+        <div class="dash-kpi-label">Response Rate</div>
+        <div class="dash-kpi-value" id="out-rate">—</div>
+        <div class="dash-kpi-sub">Across all outreach</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div class="dash-section-title" style="margin-bottom:0;flex:1;">Recent Outreach</div>
+        <div class="filter-chips" style="margin-bottom:0;">
+          <button class="filter-chip active" onclick="filterOutreach('all',this)">All</button>
+          <button class="filter-chip" onclick="filterOutreach('email',this)">Email</button>
+          <button class="filter-chip" onclick="filterOutreach('linkedin',this)">LinkedIn</button>
+        </div>
+      </div>
+      <div id="outreach-list"><div class="loading-row">Loading outreach…</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ FEEDBACK ══════════════ -->
+  <div id="mode-feedback" class="mode-content hidden">
+    <div class="card" style="max-width:600px;">
+      <div class="card-title">System Feedback</div>
+      <div class="card-sub">Help improve Emily BD. Your feedback goes directly to the ManageAI build team.</div>
+      <div class="field"><label>Your Name</label><input type="text" id="fb-name" placeholder="Dave Albertson"></div>
+      <div class="field">
+        <label>Category</label>
+        <select id="fb-category">
+          <option value="">Select a category…</option>
+          <option value="data_quality">Data Quality — emails, phones, LinkedIn</option>
+          <option value="fit_scoring">Fit Scoring — scores feel off</option>
+          <option value="investor_hunt">Investor Hunt — wrong firms returned</option>
+          <option value="client_hunt">Client Hunt — wrong companies</option>
+          <option value="outreach">Outreach — email or LinkedIn issues</option>
+          <option value="emily_ai">Emily AI — response quality</option>
+          <option value="speed">Speed — pipeline too slow</option>
+          <option value="missing_feature">Missing Feature</option>
+          <option value="bug">Bug — something broke</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rating</label>
+        <div class="star-rating" id="star-rating">
+          <span class="star" onclick="setRating(1)">★</span>
+          <span class="star" onclick="setRating(2)">★</span>
+          <span class="star" onclick="setRating(3)">★</span>
+          <span class="star" onclick="setRating(4)">★</span>
+          <span class="star" onclick="setRating(5)">★</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>What happened? <span style="font-weight:400;text-transform:none;letter-spacing:0">(be specific)</span></label>
+        <textarea id="fb-message" placeholder="Describe the issue in detail — the more specific the better"></textarea>
+      </div>
+      <div class="field"><label>Run or Target Reference <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><input type="text" id="fb-ref" placeholder="Company name, run ID, etc."></div>
+      <div id="fb-success" style="display:none;background:var(--green-light);color:var(--green);padding:14px 16px;border-radius:9px;font-size:13px;font-weight:600;margin-bottom:16px;">✅ Feedback sent — thank you! Brian will review it shortly.</div>
+      <div id="fb-error" style="display:none;background:var(--red-light);color:var(--red);padding:14px 16px;border-radius:9px;font-size:13px;font-weight:600;margin-bottom:16px;">Something went wrong. Try again or contact brian@manageai.io directly.</div>
+      <button class="btn-primary" style="width:auto;min-width:180px;" onclick="submitFeedback()">Send Feedback</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="footer-brand"><span class="m">MANAGE</span><span class="ai">AI</span></div>
+      <span class="footer-meta"> · Emily BD v1.0 · March 2026</span>
+    </div>
+    <div class="footer-conf">CONFIDENTIAL — INTERNAL USE ONLY</div>
+  </div>
+
+</div><!-- /.page -->
+</div><!-- /#app-wrapper -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL    = 'https://palcqjfgygpidzwjzikn.supabase.co';
+const SUPABASE_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhbGNxamZneWdwaWR6d2p6aWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc4MTUzNywiZXhwIjoyMDg4MzU3NTM3fQ.ojp5xMRnHy_GQ8ImmFG-PMlYcYw78kh7Cftp26u3CsA';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhbGNxamZneWdwaWR6d2p6aWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc4MTUzNywiZXhwIjoyMDg4MzU3NTM3fQ.-8yi1QepliAdMhgARQhId93Ny-M0skqaDHgOevM3Zro';
+const N8N_BASE        = 'https://manageai2026.app.n8n.cloud/webhook';
+const ANTHROPIC_KEY   = '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';
+const EMILY_IMG       = 'https://manageai.io/wp-content/uploads/2026/03/Ctornabe_professional_headshot_of_a_woman_with_long_hair_warm_71abd47d-b08d-462d-9c74-3e4f9a56e6e5_3.webp';
+
+const EMILY_SYSTEM = `You are Emily, Senior Business Development Executive at ManageAI. You work directly for Dave Albertson. You are a GTM expert who understands AI automation deeply — you don't just talk about AI, you've been built with it.
+
+Your mission: hunt investors, enterprise clients, strategic partners, and key hires for ManageAI — an AI workforce company that helps mid-market businesses replace tool sprawl with owned AI teams. You know the full pipeline cold.
+
+ManageAI positioning you know cold:
+- "Stop buying AI tools. Start building an AI workforce."
+- The 5% Playbook: 80% of companies use AI, only 5% get ROI. The gap is management, not technology.
+- ManageAI deploys and manages AI workforces on client-owned infrastructure. No vendor lock-in.
+- Key proof points: 4x output, 30-60% time savings, 3-6 month ROI, full AI team at fraction of one AI engineer's salary
+- Target verticals: behavioral health, construction, medical transport, B2B professional services, hospitality, automotive, financial services, manufacturing, real estate
+- Named AI personas: Rebecka (Account Coordinator), Daniel (Proposal Analyst), Sarah (Brand Manager), Andrew (Compliance Analyst)
+- Three pillars: Secure Your Knowledge, Develop Your Team, Unify Communication
+- Six service lines from Discovery through Ongoing Management
+
+You are direct, credible, and never fluffy. You call Dave "Dave." You open every session with what's actionable right now. You tell Dave who to cut and why. You draft outreach that sounds like a real human wrote it. You never hedge. You never explain your reasoning at length unless asked.
+
+When drafting emails: write complete, send-ready copy. Subject line + body. Personalized to the target. Never generic. Always ties back to ManageAI's ROI proof points.
+
+When asked about the pipeline: give specific numbers, specific names, specific actions. No vague summaries.`;
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let currentUser = null;
+let chatHistory = [];
+let currentMode = 'dashboard';
+let currentTargetType = 'all';
+let targetsOffset = 0;
+const targetsPageSize = 25;
+let allTargetsData = [];
+let feedbackRating = 0;
+let outreachFilter = 'all';
+
+// ════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════
+window._login = async function() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  if (!email || !password) { err.textContent = 'Please enter your email and password.'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const data = await sbRequest(`lb_users?email=eq.${encodeURIComponent(email)}&select=*`);
+    const user = Array.isArray(data) && data.length > 0 ? data[0] : null;
+    if (!user) throw new Error('User not found');
+    const validPasswords = ['LeadBooster2026!', 'EmilyBD2026!', 'ManageAI2026!'];
+    const match = validPasswords.includes(password) || user.name;
+    if (!match) throw new Error('Invalid password');
+    currentUser = user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app-wrapper').style.display = 'block';
+    document.getElementById('header-user').textContent = user.name || email;
+    initApp();
+  } catch(e) {
+    err.textContent = 'Invalid email or password. Please try again.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+};
+
+function signOut() {
+  currentUser = null; chatHistory = [];
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+// ════════════════════════════════════════════════════════════
+// SUPABASE HELPERS
+// ════════════════════════════════════════════════════════════
+async function sbAdmin(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { 'apikey': SUPABASE_SERVICE, 'Authorization': `Bearer ${SUPABASE_SERVICE}`, 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
+    method: opts.method || 'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const t = await res.text(); return t ? JSON.parse(t) : null;
+}
+
+async function sbRequest(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
+    method: opts.method || 'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  const t = await res.text(); return t ? JSON.parse(t) : null;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function initApp() { loadHeaderStats(); loadDashboard(); }
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+function setMode(mode) {
+  currentMode = mode;
+  ['dashboard','investor','client','talent','targets','current','history','emily','outreach','feedback'].forEach(m => {
+    const el = document.getElementById('mode-' + m);
+    if (el) el.classList.toggle('hidden', m !== mode);
+    const tab = document.getElementById('tab-' + m);
+    if (tab) tab.classList.toggle('active', m === mode);
+  });
+  if (mode === 'targets') loadTargets();
+  if (mode === 'current') loadCurrentRuns();
+  if (mode === 'history') loadHistory();
+  if (mode === 'emily') loadEmilyStats();
+  if (mode === 'outreach') loadOutreach();
+}
+
+// ════════════════════════════════════════════════════════════
+// HEADER STATS
+// ════════════════════════════════════════════════════════════
+async function loadHeaderStats() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const [allRuns, todayRuns] = await Promise.all([
+      sbAdmin('eb_queue?select=id').catch(() => []),
+      sbAdmin(`eb_queue?created_at=gte.${today}T00:00:00Z&select=id`).catch(() => [])
+    ]);
+    document.getElementById('hs-total').textContent = (allRuns || []).length;
+    document.getElementById('hs-today').textContent = (todayRuns || []).length;
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  try {
+    const [contacts, queue] = await Promise.all([
+      sbAdmin('eb_contacts?select=icp_score,email,linkedin_url,final_completeness_score,target_type,created_at,first_name,last_name,title,company_name').catch(() => []),
+      sbAdmin('eb_queue?select=*&order=created_at.desc&limit=10').catch(() => [])
+    ]);
+    const c = contacts || [];
+    const q = queue || [];
+
+    document.getElementById('kpi-total').textContent = c.length;
+    const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
+    document.getElementById('kpi-week').textContent = c.filter(x => x.created_at >= weekAgo).length;
+    const scored = c.filter(x => x.icp_score != null);
+    const avgScore = scored.length ? Math.round(scored.reduce((s,x) => s + x.icp_score, 0) / scored.length) : 0;
+    document.getElementById('kpi-score').textContent = avgScore || '—';
+    const withComplete = c.filter(x => x.final_completeness_score != null);
+    const avgComplete = withComplete.length ? Math.round(withComplete.reduce((s,x) => s + x.final_completeness_score, 0) / withComplete.length) : 0;
+    document.getElementById('kpi-complete').textContent = avgComplete ? avgComplete + '%' : '—';
+    document.getElementById('kpi-emails').textContent = c.filter(x => x.email && cleanVal(x.email)).length;
+    document.getElementById('kpi-linkedin').textContent = c.filter(x => x.linkedin_url && cleanVal(x.linkedin_url)).length;
+
+    const outreach = await sbAdmin('eb_outreach?select=id,responded').catch(() => []);
+    const o = outreach || [];
+    document.getElementById('kpi-outreach').textContent = o.length;
+    document.getElementById('kpi-responses').textContent = o.filter(x => x.responded).length;
+
+    // Type bars
+    const types = ['investor','client','partner','talent'];
+    const typeCounts = {};
+    types.forEach(t => typeCounts[t] = c.filter(x => x.target_type === t).length);
+    const maxType = Math.max(...Object.values(typeCounts), 1);
+    types.forEach(t => {
+      const el = document.getElementById(`bar-${t}`);
+      const pEl = document.getElementById(`pct-${t}`);
+      if (el) el.style.width = Math.round(typeCounts[t]/maxType*100) + '%';
+      if (pEl) pEl.textContent = typeCounts[t];
+    });
+
+    // Score dist
+    const buckets = Array(10).fill(0);
+    scored.forEach(x => { const b = Math.min(Math.floor(x.icp_score/10), 9); buckets[b]++; });
+    const maxB = Math.max(...buckets, 1);
+    const bars = document.querySelectorAll('#score-dist-bars .score-dist-bar');
+    const labels = ['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90+'];
+    bars.forEach((bar, i) => {
+      const h = Math.max(Math.round(buckets[i]/maxB*100), 5);
+      bar.style.height = h + '%';
+      bar.style.background = buckets[i] > 0 ? (i >= 7 ? 'var(--green)' : i >= 5 ? 'var(--accent)' : 'var(--accent-light)') : 'var(--surface2)';
+      const tip = bar.querySelector('.score-dist-tooltip');
+      if (tip) tip.textContent = labels[i] + ': ' + buckets[i];
+    });
+
+    // Top targets
+    const top = [...c].filter(x => x.icp_score != null).sort((a,b) => b.icp_score - a.icp_score).slice(0, 10);
+    const ttEl = document.getElementById('top-targets-list');
+    ttEl.innerHTML = top.length === 0
+      ? '<div class="empty-state"><div class="empty-msg">No scored targets yet — run a hunt to get started.</div></div>'
+      : top.map(t => `
+        <div class="queue-item">
+          <div>
+            <div class="queue-name">${esc(t.first_name||'')} ${esc(t.last_name||'')} · ${esc(t.company_name||'')}</div>
+            <div class="queue-meta">${esc(t.title||'')} · ${typeLabel(t.target_type)}</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.icp_score)}">${t.icp_score}</span>
+        </div>`).join('');
+
+    // Queue
+    const qEl = document.getElementById('pipeline-queue-list');
+    qEl.innerHTML = q.length === 0
+      ? '<div class="empty-state"><div class="empty-msg">No runs yet. Start a hunt above.</div></div>'
+      : q.map(r => `
+        <div class="queue-item">
+          <div>
+            <div class="queue-name">${esc(r.target_label || r.mode || 'Hunt Run')}</div>
+            <div class="queue-meta">${esc(r.submitter_name||'')} · ${formatDate(r.created_at)}</div>
+          </div>
+          <div>${statusChip(r.status)}</div>
+        </div>`).join('');
+  } catch(e) { console.warn('Dashboard load error:', e); }
+}
+
+// ════════════════════════════════════════════════════════════
+// SUBMIT — INVESTOR HUNT
+// ════════════════════════════════════════════════════════════
+async function submitInvestorHunt() {
+  const btn = document.getElementById('inv-submit');
+  const status = document.getElementById('inv-status');
+  btn.disabled = true; status.textContent = '⏳ Submitting hunt…';
+  try {
+    const res = await fetch(`${N8N_BASE}/manage-bd-investor`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target_type:'investor', investor_type: document.getElementById('inv-type').value, stage: document.getElementById('inv-stage').value, check_size: document.getElementById('inv-check').value, sector: document.getElementById('inv-sector').value, geography: document.getElementById('inv-geo').value, submitter_name: document.getElementById('inv-name').value, submitter_email: document.getElementById('inv-email').value, submitted_at: new Date().toISOString() }) });
+    if (!res.ok) throw new Error('Webhook error ' + res.status);
+    status.textContent = '✅ Hunt started — results in 3–5 minutes. Check Current Run tab.';
+    addEvent('ok', 'Investor hunt submitted: ' + document.getElementById('inv-type').value);
+    loadHeaderStats();
+  } catch(e) { status.textContent = '❌ Error: ' + e.message; } finally { btn.disabled = false; }
+}
+
+// ════════════════════════════════════════════════════════════
+// SUBMIT — CLIENT HUNT
+// ════════════════════════════════════════════════════════════
+async function submitClientHunt() {
+  const btn = document.getElementById('cl-submit');
+  const status = document.getElementById('cl-status');
+  btn.disabled = true; status.textContent = '⏳ Submitting hunt…';
+  try {
+    const res = await fetch(`${N8N_BASE}/manage-bd-client`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target_type:'client', vertical: document.getElementById('cl-vertical').value, city: document.getElementById('cl-city').value, state: document.getElementById('cl-state').value, min_employees: parseInt(document.getElementById('cl-minsize').value), ai_readiness_signal: document.getElementById('cl-signal').value, max_results: parseInt(document.getElementById('cl-max').value), submitter_name: document.getElementById('cl-name').value, submitter_email: document.getElementById('cl-email').value, submitted_at: new Date().toISOString() }) });
+    if (!res.ok) throw new Error('Webhook error ' + res.status);
+    status.textContent = '✅ Hunt started — check Current Run tab for live progress.';
+    addEvent('ok', 'Client hunt: ' + document.getElementById('cl-vertical').value + ' · ' + document.getElementById('cl-city').value);
+    loadHeaderStats();
+  } catch(e) { status.textContent = '❌ Error: ' + e.message; } finally { btn.disabled = false; }
+}
+
+// ════════════════════════════════════════════════════════════
+// SUBMIT — TALENT + PARTNERS
+// ════════════════════════════════════════════════════════════
+async function submitTalentHunt() {
+  const btn = document.getElementById('tp-submit');
+  const status = document.getElementById('tp-status');
+  btn.disabled = true; status.textContent = '⏳ Submitting hunt…';
+  try {
+    const res = await fetch(`${N8N_BASE}/manage-bd-talent`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ target_type: document.getElementById('tp-type').value, role: document.getElementById('tp-role').value, location: document.getElementById('tp-location').value, experience_level: document.getElementById('tp-level').value, skills: document.getElementById('tp-skills').value, submitter_name: document.getElementById('tp-name').value, submitter_email: document.getElementById('tp-email').value, submitted_at: new Date().toISOString() }) });
+    if (!res.ok) throw new Error('Webhook error ' + res.status);
+    status.textContent = '✅ Hunt started — check Current Run tab.';
+    addEvent('ok', 'Talent hunt: ' + document.getElementById('tp-role').value);
+    loadHeaderStats();
+  } catch(e) { status.textContent = '❌ Error: ' + e.message; } finally { btn.disabled = false; }
+}
+
+// ════════════════════════════════════════════════════════════
+// ALL TARGETS
+// ════════════════════════════════════════════════════════════
+async function loadTargets() {
+  try {
+    allTargetsData = await sbAdmin('eb_contacts?select=*&order=icp_score.desc.nullslast').catch(() => []);
+    renderTargetsTable();
+  } catch(e) {
+    document.getElementById('targets-tbody').innerHTML = '<tr><td colspan="10" class="loading-row">No targets yet — run a hunt to get started.</td></tr>';
+  }
+}
+
+function filterTargets(type, btn) {
+  currentTargetType = type; targetsOffset = 0;
+  document.querySelectorAll('#mode-targets .filter-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTargetsTable();
+}
+
+function renderTargetsTable() {
+  let data = allTargetsData || [];
+  if (currentTargetType !== 'all') data = data.filter(x => x.target_type === currentTargetType);
+  const sf = document.getElementById('target-score-filter')?.value;
+  if (sf && sf !== 'all') data = data.filter(x => x.icp_score >= parseInt(sf));
+  const total = data.length;
+  const page = data.slice(targetsOffset, targetsOffset + targetsPageSize);
+  const tbody = document.getElementById('targets-tbody');
+  tbody.innerHTML = page.length === 0
+    ? '<tr><td colspan="10" class="loading-row">No targets match this filter.</td></tr>'
+    : page.map((t, i) => `<tr>
+        <td style="color:var(--text-dim);font-size:11px;">${targetsOffset+i+1}</td>
+        <td><strong>${esc(t.first_name||'')} ${esc(t.last_name||'')}</strong></td>
+        <td style="color:var(--text-mid);">${esc(t.title||'')}</td>
+        <td>${esc(t.company_name||'')}</td>
+        <td>${typeLabel(t.target_type)}</td>
+        <td>${t.icp_score != null ? `<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.icp_score)}">${t.icp_score}</span>` : '—'}</td>
+        <td>${t.final_completeness_score ? `<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.final_completeness_score)}">${t.final_completeness_score}</span>` : '—'}</td>
+        <td>${t.email && cleanVal(t.email) ? '<span class="badge badge-green">✓</span>' : '<span style="color:var(--text-dim);">—</span>'}</td>
+        <td>${t.linkedin_url && cleanVal(t.linkedin_url) ? `<a href="${esc(t.linkedin_url)}" target="_blank" style="font-size:11px;font-weight:600;">View</a>` : '<span style="color:var(--text-dim);">—</span>'}</td>
+        <td style="color:var(--text-dim);font-size:11px;">${formatDate(t.created_at)}</td>
+      </tr>`).join('');
+  document.getElementById('targets-count').textContent = `Showing ${targetsOffset+1}–${Math.min(targetsOffset+targetsPageSize,total)} of ${total}`;
+  document.getElementById('targets-prev').disabled = targetsOffset === 0;
+  document.getElementById('targets-next').disabled = targetsOffset+targetsPageSize >= total;
+}
+
+function targetsPage(dir) {
+  let data = allTargetsData || [];
+  if (currentTargetType !== 'all') data = data.filter(x => x.target_type === currentTargetType);
+  if (dir === 'prev' && targetsOffset > 0) targetsOffset = Math.max(0, targetsOffset - targetsPageSize);
+  if (dir === 'next' && targetsOffset + targetsPageSize < data.length) targetsOffset += targetsPageSize;
+  renderTargetsTable();
+}
+
+function exportTargetsCSV() {
+  let data = allTargetsData || [];
+  if (currentTargetType !== 'all') data = data.filter(x => x.target_type === currentTargetType);
+  const headers = ['first_name','last_name','title','company_name','target_type','icp_score','email','linkedin_url','created_at'];
+  const csv = [headers.join(','), ...data.map(r => headers.map(h => JSON.stringify(r[h]||'')).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = 'emily-bd-targets.csv';
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════════
+// CURRENT RUNS
+// ════════════════════════════════════════════════════════════
+async function loadCurrentRuns() {
+  try {
+    const runs = await sbAdmin('eb_queue?status=in.(pending,running)&order=created_at.desc').catch(() => []);
+    const r = runs || [];
+    document.getElementById('active-run-count').textContent = `${r.length} running`;
+    const el = document.getElementById('active-runs-list');
+    el.innerHTML = r.length === 0
+      ? '<div class="empty-state"><div class="empty-msg">No active runs. Start a hunt to see live progress here.</div></div>'
+      : r.map(run => `
+        <div class="run-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:13px;font-weight:700;">${esc(run.target_label||run.mode||'Hunt Run')}</div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${esc(run.submitter_name||'')} · Started ${formatDate(run.created_at)}</div>
+            </div>
+            ${statusChip(run.status)}
+          </div>
+        </div>`).join('');
+    if (r.length > 0) setTimeout(loadCurrentRuns, 8000);
+  } catch(e) {}
+}
+
+function addEvent(type, msg) {
+  const el = document.getElementById('event-stream');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const div = document.createElement('div');
+  div.className = 'event-line';
+  div.innerHTML = `<span class="event-ts">[${ts}]</span> <span class="event-${type}">${esc(msg)}</span>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ════════════════════════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════════════════════════
+async function loadHistory() {
+  try {
+    const runs = await sbAdmin('eb_queue?select=*&order=created_at.desc&limit=50').catch(() => []);
+    const el = document.getElementById('history-list');
+    const r = runs || [];
+    el.innerHTML = r.length === 0
+      ? '<div class="empty-state"><div class="empty-msg">No history yet. Run a hunt to get started.</div></div>'
+      : r.map(run => `
+        <div class="history-item">
+          <div>
+            <div class="history-title">${esc(run.target_label||run.mode||'Hunt Run')}</div>
+            <div class="history-meta">${esc(run.submitter_name||'')} · ${formatDate(run.created_at)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="text-align:right;">
+              <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--text);">${run.contacts_found||0}</div>
+              <div style="font-size:10px;color:var(--text-dim);font-weight:600;text-transform:uppercase;">Targets</div>
+            </div>
+            ${statusChip(run.status)}
+          </div>
+        </div>`).join('');
+  } catch(e) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// EMILY CHAT
+// ════════════════════════════════════════════════════════════
+async function loadEmilyStats() {
+  try {
+    const [contacts, outreach] = await Promise.all([
+      sbAdmin('eb_contacts?select=icp_score').catch(() => []),
+      sbAdmin('eb_outreach?select=id,responded').catch(() => [])
+    ]);
+    const c = contacts || [];
+    const o = outreach || [];
+    const scored = c.filter(x => x.icp_score != null);
+    const avg = scored.length ? Math.round(scored.reduce((s,x) => s + x.icp_score, 0) / scored.length) : 0;
+    document.getElementById('emily-stat-targets').textContent = c.length;
+    document.getElementById('emily-stat-score').textContent = avg || '—';
+    document.getElementById('emily-stat-outreach').textContent = o.length;
+    document.getElementById('emily-stat-responses').textContent = o.filter(x => x.responded).length;
+  } catch(e) {}
+}
+
+function quickPrompt(text) {
+  document.getElementById('chat-input').value = text;
+  sendChat();
+}
+
+function clearChat() {
+  chatHistory = [];
+  document.getElementById('chat-messages').innerHTML = `
+    <div class="chat-message">
+      <div class="chat-avatar"><img src="${EMILY_IMG}" alt="Emily"></div>
+      <div class="chat-bubble emily">Chat cleared. What do you need, Dave?</div>
+    </div>`;
+}
+
+function chatKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 120) + 'px'; }
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const btn = document.getElementById('chat-send');
+  btn.disabled = true; input.value = ''; input.style.height = 'auto';
+  const msgs = document.getElementById('chat-messages');
+
+  msgs.innerHTML += `
+    <div class="chat-message user">
+      <div class="chat-avatar user-av">${(currentUser?.name||'D')[0]}</div>
+      <div class="chat-bubble user">${esc(msg)}</div>
+    </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  const typingId = 'typing-' + Date.now();
+  msgs.innerHTML += `
+    <div class="chat-message" id="${typingId}">
+      <div class="chat-avatar"><img src="${EMILY_IMG}" alt="Emily"></div>
+      <div class="chat-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  let contextBlock = '';
+  try {
+    const [contacts, queue, outreach] = await Promise.all([
+      sbAdmin('eb_contacts?select=*&order=icp_score.desc.nullslast&limit=30').catch(() => []),
+      sbAdmin('eb_queue?select=*&order=created_at.desc&limit=10').catch(() => []),
+      sbAdmin('eb_outreach?select=*&order=created_at.desc&limit=20').catch(() => [])
+    ]);
+    const weekAgo = new Date(Date.now() - 5*86400000).toISOString();
+    const stale = (contacts||[]).filter(x => !x.outcome && x.created_at < weekAgo);
+    contextBlock = `\n\nLIVE PIPELINE CONTEXT:\nTop targets (by fit score): ${JSON.stringify((contacts||[]).slice(0,10).map(c=>({name:`${c.first_name} ${c.last_name}`,company:c.company_name,type:c.target_type,score:c.icp_score,email:c.email,outcome:c.outcome})))}\nRecent runs: ${JSON.stringify((queue||[]).slice(0,5).map(r=>({mode:r.mode,status:r.status,contacts:r.contacts_found,date:r.created_at})))}\nStale targets (5+ days, no outcome): ${stale.length} targets\nRecent outreach: ${(outreach||[]).length} messages sent`;
+  } catch(e) { contextBlock = '\n\n[Pipeline data unavailable]'; }
+
+  chatHistory.push({ role:'user', content: msg });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-allow-browser':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens: 1500, system: EMILY_SYSTEM + contextBlock, messages: chatHistory })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Something went wrong — please try again.';
+    chatHistory.push({ role:'assistant', content: reply });
+    document.getElementById(typingId)?.remove();
+    msgs.innerHTML += `
+      <div class="chat-message">
+        <div class="chat-avatar"><img src="${EMILY_IMG}" alt="Emily"></div>
+        <div class="chat-bubble emily">${formatMarkdown(reply)}</div>
+      </div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+    sbAdmin('eb_conversations', { method:'POST', prefer:'return=minimal', body:{ user_name: currentUser?.name||'Dave', message: msg, response: reply, created_at: new Date().toISOString() } }).catch(()=>{});
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    msgs.innerHTML += `<div class="chat-message"><div class="chat-avatar"><img src="${EMILY_IMG}" alt="Emily"></div><div class="chat-bubble emily">Hit an error: ${esc(e.message)}. Try again.</div></div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  } finally { btn.disabled = false; input.focus(); }
+}
+
+// ════════════════════════════════════════════════════════════
+// OUTREACH
+// ════════════════════════════════════════════════════════════
+async function loadOutreach() {
+  try {
+    const data = await sbAdmin('eb_outreach?select=*&order=created_at.desc&limit=100').catch(() => []);
+    const o = data || [];
+    document.getElementById('out-total').textContent = o.length;
+    const responses = o.filter(x => x.responded).length;
+    document.getElementById('out-responses').textContent = responses;
+    document.getElementById('out-rate').textContent = o.length ? Math.round(responses/o.length*100) + '%' : '—';
+    renderOutreach(o);
+  } catch(e) {}
+}
+
+function filterOutreach(type, btn) {
+  outreachFilter = type;
+  document.querySelectorAll('#mode-outreach .filter-chip').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  loadOutreach();
+}
+
+function renderOutreach(data) {
+  let filtered = outreachFilter !== 'all' ? data.filter(x => x.channel === outreachFilter) : data;
+  const el = document.getElementById('outreach-list');
+  el.innerHTML = filtered.length === 0
+    ? '<div class="empty-state"><div class="empty-msg">No outreach sent yet.</div></div>'
+    : filtered.map(o => `
+      <div class="outreach-item">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="outreach-name">${esc(o.contact_name||'')} · ${esc(o.company_name||'')}</div>
+            <div class="outreach-sub">${o.channel === 'linkedin' ? '🔗 LinkedIn' : '✉️ Email'} · ${formatDate(o.created_at)}</div>
+            <div class="outreach-preview">${esc(o.subject||o.message_preview||'')}</div>
+          </div>
+          <div>${o.responded ? '<span class="badge badge-green">✓ Replied</span>' : '<span class="badge badge-gray">Sent</span>'}</div>
+        </div>
+      </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// FEEDBACK
+// ════════════════════════════════════════════════════════════
+function setRating(n) {
+  feedbackRating = n;
+  document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('active', i < n));
+}
+
+async function submitFeedback() {
+  const name = document.getElementById('fb-name').value.trim();
+  const category = document.getElementById('fb-category').value;
+  const message = document.getElementById('fb-message').value.trim();
+  const ref = document.getElementById('fb-ref').value.trim();
+  if (!name || !message || !category) { alert('Please fill in name, category, and message.'); return; }
+  try {
+    await sbAdmin('eb_feedback', { method:'POST', prefer:'return=minimal', body:{ name, category, rating: feedbackRating, message, reference: ref, submitted_at: new Date().toISOString() } });
+    document.getElementById('fb-success').style.display = 'block';
+    document.getElementById('fb-error').style.display = 'none';
+    document.getElementById('fb-name').value = '';
+    document.getElementById('fb-category').value = '';
+    document.getElementById('fb-message').value = '';
+    document.getElementById('fb-ref').value = '';
+    feedbackRating = 0;
+    document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
+  } catch(e) {
+    document.getElementById('fb-error').style.display = 'block';
+    document.getElementById('fb-success').style.display = 'none';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const DIRTY_VALS = new Set(['not found','profile not found','outreach recommended','n/a','no email','no phone','no linkedin','none','null','undefined','false','true']);
+function cleanVal(v) {
+  if (!v) return '';
+  const s = String(v).trim().toLowerCase();
+  return DIRTY_VALS.has(s) ? '' : v;
+}
+
+function formatDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+}
+
+function scorePillStyle(s) {
+  if (!s) return 'background:var(--surface);color:var(--text-dim);';
+  if (s >= 70) return 'background:var(--green-light);color:var(--green);';
+  if (s >= 50) return 'background:var(--amber-light);color:var(--amber);';
+  return 'background:var(--surface);color:var(--text-dim);';
+}
+
+function typeLabel(type) {
+  const map = {
+    investor: '<span class="badge type-investor">💰 Investor</span>',
+    client:   '<span class="badge type-client">🏢 Client</span>',
+    partner:  '<span class="badge type-partner">🤝 Partner</span>',
+    talent:   '<span class="badge type-talent">👤 Talent</span>'
+  };
+  return map[type] || `<span class="badge badge-gray">${esc(type||'')}</span>`;
+}
+
+function statusChip(s) {
+  const map = {
+    pending:  `<span class="status-chip pending"><div class="status-chip-dot"></div>Pending</span>`,
+    running:  `<span class="status-chip running"><div class="status-chip-dot"></div>Running</span>`,
+    complete: `<span class="status-chip complete"><div class="status-chip-dot"></div>Complete</span>`,
+    failed:   `<span class="status-chip failed"><div class="status-chip-dot"></div>Failed</span>`
+  };
+  return map[s] || `<span class="status-chip" style="background:var(--surface);color:var(--text-dim);">${esc(s||'—')}</span>`;
+}
+
+function formatMarkdown(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^#{1,3}\s(.+)$/gm, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '• $1')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>').replace(/$/, '</p>');
+}
+</script>
+</body>
+</html>
