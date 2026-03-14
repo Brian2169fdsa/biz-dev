@@ -61,12 +61,12 @@ a { color: var(--accent); text-decoration: none; }
 .login-field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: var(--font); outline: none; transition: border-color 0.2s; }
 .login-field input:focus { border-color: var(--accent); }
 .login-error { background: var(--red-light); color: var(--red); font-size: 12px; padding: 9px 12px; border-radius: 7px; margin-bottom: 14px; display: none; }
-.btn-login { width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-.btn-login:hover { background: #3a7ec4; }
-.btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+.login-btn { width: 100%; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.login-btn:hover { background: #3a7ec4; }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── PAGE WRAPPER ─────────────────────────────────────── */
-#app-wrapper { display: none; }
+#app { display: none; }
 .page { max-width: 1320px; margin: 0 auto; padding: 32px 40px 60px; }
 
 /* ── HEADER ───────────────────────────────────────────── */
@@ -404,12 +404,12 @@ a { color: var(--accent); text-decoration: none; }
       <label>Password</label>
       <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')window._login()">
     </div>
-    <button class="btn-login" id="login-btn" onclick="window._login()">Sign In</button>
+    <button class="login-btn" onclick="window._login()">Sign In</button>
   </div>
 </div>
 
 <!-- ══════════════════════ APP ══════════════════════ -->
-<div id="app-wrapper">
+<div id="app" style="display:none">
 <div class="page">
 
   <!-- Header -->
@@ -976,7 +976,7 @@ a { color: var(--accent); text-decoration: none; }
   </div>
 
 </div><!-- /.page -->
-</div><!-- /#app-wrapper -->
+</div><!-- /#app -->
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -1027,36 +1027,58 @@ let outreachFilter = 'all';
 // ════════════════════════════════════════════════════════════
 window._login = async function() {
   const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  if (!email || !password) { err.textContent = 'Please enter your email and password.'; err.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Signing in…';
+  const password = document.getElementById('login-password').value.trim();
+  const errEl = document.getElementById('login-error');
+  const btn = document.querySelector('.login-btn');
+
+  if (!email || !password) {
+    errEl.textContent = 'Email and password required.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
   try {
-    const data = await sbRequest(`lb_users?email=eq.${encodeURIComponent(email)}&select=*`);
-    const user = Array.isArray(data) && data.length > 0 ? data[0] : null;
-    if (!user) throw new Error('User not found');
-    const validPasswords = ['LeadBooster2026!', 'EmilyBD2026!', 'ManageAI2026!'];
-    const match = validPasswords.includes(password) || user.name;
-    if (!match) throw new Error('Invalid password');
-    currentUser = user;
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app-wrapper').style.display = 'block';
-    document.getElementById('header-user').textContent = user.name || email;
-    initApp();
+    const res = await fetch('https://palcqjfgygpidzwjzikn.supabase.co/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhbGNxamZneWdwaWR6d2p6aWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjc4MTUzNywiZXhwIjoyMDg4MzU3NTM3fQ.ojp5xMRnHy_GQ8ImmFG-PMlYcYw78kh7Cftp26u3CsA'
+      },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      window._authToken = data.access_token;
+      window._userEmail = email;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      if (typeof window._initDashboard === 'function') window._initDashboard();
+    } else {
+      errEl.textContent = data.error_description || data.msg || 'Invalid credentials.';
+      errEl.style.display = 'block';
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    }
   } catch(e) {
-    err.textContent = 'Invalid email or password. Please try again.';
-    err.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Sign In';
+    errEl.textContent = 'Connection error. Try again.';
+    errEl.style.display = 'block';
+    btn.textContent = 'Sign In';
+    btn.disabled = false;
   }
 };
 
+window._initDashboard = function() { initApp(); };
+
 function signOut() {
   currentUser = null; chatHistory = [];
-  document.getElementById('app-wrapper').style.display = 'none';
-  document.getElementById('login-screen').classList.remove('hidden');
+  window._authToken = null;
+  window._userEmail = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
 }
@@ -1066,7 +1088,7 @@ function signOut() {
 // ════════════════════════════════════════════════════════════
 async function sbAdmin(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { 'apikey': SUPABASE_SERVICE, 'Authorization': `Bearer ${SUPABASE_SERVICE}`, 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
+    headers: { 'apikey': SUPABASE_SERVICE, 'Authorization': 'Bearer ' + (window._authToken || SUPABASE_SERVICE), 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
     method: opts.method || 'GET',
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
@@ -1076,7 +1098,7 @@ async function sbAdmin(path, opts = {}) {
 
 async function sbRequest(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${SUPABASE_ANON}`, 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
+    headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + (window._authToken || SUPABASE_ANON), 'Content-Type': 'application/json', 'Prefer': opts.prefer || 'return=representation', ...opts.headers },
     method: opts.method || 'GET',
     body: opts.body ? JSON.stringify(opts.body) : undefined
   });
