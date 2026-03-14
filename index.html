@@ -1149,7 +1149,7 @@ async function loadHeaderStats() {
 async function loadDashboard() {
   try {
     const [contacts, queue] = await Promise.all([
-      sbAdmin('eb_contacts?select=icp_score,email,linkedin_url,final_completeness_score,target_type,created_at,first_name,last_name,title,company_name').catch(() => []),
+      sbAdmin('eb_contacts?select=fit_score,email,linkedin_url,final_completeness_score,target_type,created_at,first_name,last_name,title,company_name').catch(() => []),
       sbAdmin('eb_queue?select=*&order=created_at.desc&limit=10').catch(() => [])
     ]);
     const c = contacts || [];
@@ -1158,8 +1158,8 @@ async function loadDashboard() {
     document.getElementById('kpi-total').textContent = c.length;
     const weekAgo = new Date(Date.now() - 7*86400000).toISOString();
     document.getElementById('kpi-week').textContent = c.filter(x => x.created_at >= weekAgo).length;
-    const scored = c.filter(x => x.icp_score != null);
-    const avgScore = scored.length ? Math.round(scored.reduce((s,x) => s + x.icp_score, 0) / scored.length) : 0;
+    const scored = c.filter(x => x.fit_score != null);
+    const avgScore = scored.length ? Math.round(scored.reduce((s,x) => s + x.fit_score, 0) / scored.length) : 0;
     document.getElementById('kpi-score').textContent = avgScore || '—';
     const withComplete = c.filter(x => x.final_completeness_score != null);
     const avgComplete = withComplete.length ? Math.round(withComplete.reduce((s,x) => s + x.final_completeness_score, 0) / withComplete.length) : 0;
@@ -1186,7 +1186,7 @@ async function loadDashboard() {
 
     // Score dist
     const buckets = Array(10).fill(0);
-    scored.forEach(x => { const b = Math.min(Math.floor(x.icp_score/10), 9); buckets[b]++; });
+    scored.forEach(x => { const b = Math.min(Math.floor(x.fit_score/10), 9); buckets[b]++; });
     const maxB = Math.max(...buckets, 1);
     const bars = document.querySelectorAll('#score-dist-bars .score-dist-bar');
     const labels = ['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90+'];
@@ -1199,7 +1199,7 @@ async function loadDashboard() {
     });
 
     // Top targets
-    const top = [...c].filter(x => x.icp_score != null).sort((a,b) => b.icp_score - a.icp_score).slice(0, 10);
+    const top = [...c].filter(x => x.fit_score != null).sort((a,b) => b.fit_score - a.fit_score).slice(0, 10);
     const ttEl = document.getElementById('top-targets-list');
     ttEl.innerHTML = top.length === 0
       ? '<div class="empty-state"><div class="empty-msg">No scored targets yet — run a hunt to get started.</div></div>'
@@ -1209,7 +1209,7 @@ async function loadDashboard() {
             <div class="queue-name">${esc(t.first_name||'')} ${esc(t.last_name||'')} · ${esc(t.company_name||'')}</div>
             <div class="queue-meta">${esc(t.title||'')} · ${typeLabel(t.target_type)}</div>
           </div>
-          <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.icp_score)}">${t.icp_score}</span>
+          <span style="padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.fit_score)}">${t.fit_score}</span>
         </div>`).join('');
 
     // Queue
@@ -1280,7 +1280,7 @@ async function submitTalentHunt() {
 // ════════════════════════════════════════════════════════════
 async function loadTargets() {
   try {
-    allTargetsData = await sbAdmin('eb_contacts?select=*&order=icp_score.desc.nullslast').catch(() => []);
+    allTargetsData = await sbAdmin('eb_contacts?select=*&order=fit_score.desc.nullslast').catch(() => []);
     renderTargetsTable();
   } catch(e) {
     document.getElementById('targets-tbody').innerHTML = '<tr><td colspan="10" class="loading-row">No targets yet — run a hunt to get started.</td></tr>';
@@ -1298,7 +1298,7 @@ function renderTargetsTable() {
   let data = allTargetsData || [];
   if (currentTargetType !== 'all') data = data.filter(x => x.target_type === currentTargetType);
   const sf = document.getElementById('target-score-filter')?.value;
-  if (sf && sf !== 'all') data = data.filter(x => x.icp_score >= parseInt(sf));
+  if (sf && sf !== 'all') data = data.filter(x => x.fit_score >= parseInt(sf));
   const total = data.length;
   const page = data.slice(targetsOffset, targetsOffset + targetsPageSize);
   const tbody = document.getElementById('targets-tbody');
@@ -1310,7 +1310,7 @@ function renderTargetsTable() {
         <td style="color:var(--text-mid);">${esc(t.title||'')}</td>
         <td>${esc(t.company_name||'')}</td>
         <td>${typeLabel(t.target_type)}</td>
-        <td>${t.icp_score != null ? `<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.icp_score)}">${t.icp_score}</span>` : '—'}</td>
+        <td>${t.fit_score != null ? `<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.fit_score)}">${t.fit_score}</span>` : '—'}</td>
         <td>${t.final_completeness_score ? `<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;font-family:var(--mono);${scorePillStyle(t.final_completeness_score)}">${t.final_completeness_score}</span>` : '—'}</td>
         <td>${t.email && cleanVal(t.email) ? '<span class="badge badge-green">✓</span>' : '<span style="color:var(--text-dim);">—</span>'}</td>
         <td>${t.linkedin_url && cleanVal(t.linkedin_url) ? `<a href="${esc(t.linkedin_url)}" target="_blank" style="font-size:11px;font-weight:600;">View</a>` : '<span style="color:var(--text-dim);">—</span>'}</td>
@@ -1332,7 +1332,7 @@ function targetsPage(dir) {
 function exportTargetsCSV() {
   let data = allTargetsData || [];
   if (currentTargetType !== 'all') data = data.filter(x => x.target_type === currentTargetType);
-  const headers = ['first_name','last_name','title','company_name','target_type','icp_score','email','linkedin_url','created_at'];
+  const headers = ['first_name','last_name','title','company_name','target_type','fit_score','email','linkedin_url','created_at'];
   const csv = [headers.join(','), ...data.map(r => headers.map(h => JSON.stringify(r[h]||'')).join(','))].join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv,' + encodeURIComponent(csv);
@@ -1409,13 +1409,13 @@ async function loadHistory() {
 async function loadEmilyStats() {
   try {
     const [contacts, outreach] = await Promise.all([
-      sbAdmin('eb_contacts?select=icp_score').catch(() => []),
+      sbAdmin('eb_contacts?select=fit_score').catch(() => []),
       sbAdmin('eb_outreach?select=id,responded').catch(() => [])
     ]);
     const c = contacts || [];
     const o = outreach || [];
-    const scored = c.filter(x => x.icp_score != null);
-    const avg = scored.length ? Math.round(scored.reduce((s,x) => s + x.icp_score, 0) / scored.length) : 0;
+    const scored = c.filter(x => x.fit_score != null);
+    const avg = scored.length ? Math.round(scored.reduce((s,x) => s + x.fit_score, 0) / scored.length) : 0;
     document.getElementById('emily-stat-targets').textContent = c.length;
     document.getElementById('emily-stat-score').textContent = avg || '—';
     document.getElementById('emily-stat-outreach').textContent = o.length;
@@ -1466,13 +1466,13 @@ async function sendChat() {
   let contextBlock = '';
   try {
     const [contacts, queue, outreach] = await Promise.all([
-      sbAdmin('eb_contacts?select=*&order=icp_score.desc.nullslast&limit=30').catch(() => []),
+      sbAdmin('eb_contacts?select=*&order=fit_score.desc.nullslast&limit=30').catch(() => []),
       sbAdmin('eb_queue?select=*&order=created_at.desc&limit=10').catch(() => []),
       sbAdmin('eb_outreach?select=*&order=created_at.desc&limit=20').catch(() => [])
     ]);
     const weekAgo = new Date(Date.now() - 5*86400000).toISOString();
     const stale = (contacts||[]).filter(x => !x.outcome && x.created_at < weekAgo);
-    contextBlock = `\n\nLIVE PIPELINE CONTEXT:\nTop targets (by fit score): ${JSON.stringify((contacts||[]).slice(0,10).map(c=>({name:`${c.first_name} ${c.last_name}`,company:c.company_name,type:c.target_type,score:c.icp_score,email:c.email,outcome:c.outcome})))}\nRecent runs: ${JSON.stringify((queue||[]).slice(0,5).map(r=>({mode:r.mode,status:r.status,contacts:r.contacts_found,date:r.created_at})))}\nStale targets (5+ days, no outcome): ${stale.length} targets\nRecent outreach: ${(outreach||[]).length} messages sent`;
+    contextBlock = `\n\nLIVE PIPELINE CONTEXT:\nTop targets (by fit score): ${JSON.stringify((contacts||[]).slice(0,10).map(c=>({name:`${c.first_name} ${c.last_name}`,company:c.company_name,type:c.target_type,score:c.fit_score,email:c.email,outcome:c.outcome})))}\nRecent runs: ${JSON.stringify((queue||[]).slice(0,5).map(r=>({mode:r.mode,status:r.status,contacts:r.contacts_found,date:r.created_at})))}\nStale targets (5+ days, no outcome): ${stale.length} targets\nRecent outreach: ${(outreach||[]).length} messages sent`;
   } catch(e) { contextBlock = '\n\n[Pipeline data unavailable]'; }
 
   chatHistory.push({ role:'user', content: msg });
