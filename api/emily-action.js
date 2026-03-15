@@ -53,6 +53,32 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+// ── Poll Helper ─────────────────────────────────────────────────────────────
+
+async function pollForResults(mode, fallbackMsg) {
+  for (let i = 0; i < 18; i++) {
+    await new Promise(r => setTimeout(r, 5000));
+    const queue = await sbGet('eb_queue?order=created_at.desc&limit=1');
+    const run = queue[0];
+    if (run && (run.status === 'complete' || run.status === 'failed')) {
+      if (run.status === 'complete' && run.contacts_found > 0) {
+        const topContacts = await sbGet(
+          `eb_contacts?queue_id=eq.${run.id}&select=name,title,company_name,fit_score,tier,email&order=fit_score.desc&limit=5`
+        );
+        const names = topContacts.slice(0, 3)
+          .map(c => `${c.name} at ${c.company_name}, score ${c.fit_score}`)
+          .join('; ');
+        return `Hunt complete, Dave. Found ${run.contacts_found} contacts. Top results: ${names}. All scored and in the pipeline — check the Outputs tab for the full list.`;
+      }
+      if (run.status === 'failed') {
+        return `Hunt failed, Dave. Check n8n — the workflow may need attention.`;
+      }
+      return `${mode} hunt complete, Dave. ${run.contacts_found || 0} contacts added.`;
+    }
+  }
+  return fallbackMsg;
+}
+
 // ── Tool Handlers ────────────────────────────────────────────────────────────
 
 // TOOL 1: hunt_investors
@@ -82,7 +108,9 @@ async function huntInvestors(params) {
     return `The investor hunt webhook failed to fire, Dave. Check n8n — manage-bd-investor may need to be activated.`;
   }
 
-  return `Investor hunt running — ${investor_type}, ${stage}, ${sector} focus, ${geography}. Check size target: ${check_size}. Partner contacts will be enriched and scored. Results in the pipeline in about 90 seconds.`;
+  return pollForResults('investor',
+    `Investor hunt is still running, Dave. ${investor_type} firms at ${stage} stage. Check the Outputs tab in about 60 seconds for the full results.`
+  );
 }
 
 // TOOL 2: hunt_clients
@@ -111,7 +139,9 @@ async function huntClients(params) {
   }
 
   const vertLabel = vertical.replace(/_/g, ' ');
-  return `Client hunt running — ${vertLabel} companies in ${city}, ${state}. Up to ${max_results} results. Google Places → TinyFish enrichment → Claude scoring. Contacts with emails and fit scores in about 60 seconds.`;
+  return pollForResults('client',
+    `Client hunt is still running, Dave. ${vertLabel} companies in ${city}, ${state}. Check the Outputs tab in about 60 seconds for the full results.`
+  );
 }
 
 // TOOL 3: hunt_talent
@@ -141,10 +171,10 @@ async function huntTalent(params) {
     return `Talent hunt webhook failed. Check n8n — manage-bd-talent needs to be active.`;
   }
 
-  if (hunt_type === 'partner') {
-    return `Partner hunt running — looking for ${role} firms in ${location}. TinyFish sourcing LinkedIn and partner directories. Results in about 90 seconds.`;
-  }
-  return `Talent hunt running — ${level} ${role} candidates in ${location}. Skills: ${skills}. Results in about 90 seconds.`;
+  const label = hunt_type === 'partner' ? 'partner' : 'talent';
+  return pollForResults(label,
+    `${hunt_type === 'partner' ? 'Partner' : 'Talent'} hunt is still running, Dave. ${role} in ${location}. Check the Outputs tab in about 60 seconds for the full results.`
+  );
 }
 
 // TOOL 4: get_pipeline_briefing
