@@ -367,6 +367,7 @@ a { color: var(--accent); text-decoration: none; }
 .mode-content.hidden { display: none; }
 
 /* ── ANIMATIONS ───────────────────────────────────────── */
+@keyframes rbPopIn { 0%{transform:scale(0.9);opacity:0} 100%{transform:scale(1);opacity:1} }
 @keyframes pulseDot { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.4);opacity:1} }
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 @keyframes spin { to{transform:rotate(360deg)} }
@@ -828,6 +829,12 @@ a { color: var(--accent); text-decoration: none; }
 
   <!-- ══════════════ EMILY CHAT ══════════════ -->
   <div id="mode-emily" class="mode-content hidden">
+    <div style="margin-bottom:20px;">
+      <button id="em-start-video-btn" onclick="startEmilyVideo()" style="background:linear-gradient(135deg,#1a5fb4,#4a90d9);color:white;border:none;border-radius:12px;padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(74,144,217,0.35);transition:all 0.2s;font-family:inherit;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        Video Call with Emily
+      </button>
+    </div>
     <div class="emily-layout">
       <!-- Left: Profile Card -->
       <div class="emily-left">
@@ -1625,6 +1632,199 @@ function formatMarkdown(text) {
     .replace(/\n/g, '<br>')
     .replace(/^/, '<p>').replace(/$/, '</p>');
 }
+</script>
+
+<!-- Emily Video Popover -->
+<div id="em-video-popover" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:10000;background:rgba(15,23,42,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div id="em-popover-shell" style="background:linear-gradient(135deg,#1a5fb4,#2563eb);border-radius:24px;padding:4px;box-shadow:0 24px 80px rgba(0,0,0,0.5);max-width:720px;width:94vw;max-height:90vh;display:flex;flex-direction:column;animation:rbPopIn 0.25s ease-out;">
+    <div style="background:white;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;flex:1;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #e5e7eb;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="https://manageai.io/wp-content/uploads/2026/03/Ctornabe_professional_headshot_of_a_woman_with_long_hair_warm_71abd47d-b08d-462d-9c74-3e4f9a56e6e5_3.webp" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #4a90d9;" />
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#1a2f4e;">Emily Chen</div>
+            <div id="em-popover-status" style="font-size:12px;color:#4a90d9;font-weight:500;">Connecting...</div>
+          </div>
+        </div>
+        <button onclick="endEmilyVideo()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:10px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">End Call</button>
+      </div>
+      <div id="em-daily-container" style="width:100%;height:420px;background:#0f172a;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;left:0;right:0;height:50px;background:linear-gradient(#0f172a 10%,transparent);pointer-events:none;z-index:20;"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:24px;padding:18px 20px;background:#f8fafc;border-top:1px solid #e5e7eb;">
+        <button id="em-camera-btn" onclick="toggleEmilyCamera()" style="width:48px;height:48px;border-radius:50%;background:#1a2f4e;border:2px solid #4a90d9;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Toggle camera">
+          <svg id="em-camera-icon-on" width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          <svg id="em-camera-icon-off" width="22" height="22" viewBox="0 0 24 24" fill="#dc2626" style="display:none;"><path d="M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/></svg>
+        </button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <button id="em-ptt-btn"
+            style="width:72px;height:72px;border-radius:50%;background:#1a2f4e;border:3px solid #4a90d9;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;box-shadow:0 4px 20px rgba(74,144,217,0.3);"
+            onmousedown="startEmilyPTT()"
+            onmouseup="stopEmilyPTT()"
+            ontouchstart="event.preventDefault();startEmilyPTT()"
+            ontouchend="event.preventDefault();stopEmilyPTT()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h-3v2h8v-2h-3v-2.06A9 9 0 0 0 21 12v-2h-2z"/>
+            </svg>
+          </button>
+          <div id="em-ptt-status" style="font-size:11px;color:#64748b;letter-spacing:0.04em;text-transform:uppercase;">Hold to talk</div>
+        </div>
+        <div style="width:48px;height:48px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@daily-co/daily-js"></script>
+<script>
+// ==================== EMILY VIDEO SESSION ====================
+let emilyConversationId = null;
+let emilyConversationUrl = null;
+let emilyCallObject = null;
+let emilySessionActive = false;
+let emilyIdleTimer = null;
+let emilyCameraOn = true;
+let emilyPttActive = false;
+
+function emilyResetIdleTimer() {
+  if (emilyIdleTimer) clearTimeout(emilyIdleTimer);
+  emilyIdleTimer = setTimeout(() => {
+    if (emilySessionActive) endEmilyVideo();
+  }, 180000);
+}
+
+async function startEmilyVideo() {
+  const btn = document.getElementById('em-start-video-btn');
+  btn.textContent = 'Starting session...';
+  btn.disabled = true;
+  const popover = document.getElementById('em-video-popover');
+  popover.style.display = 'flex';
+  document.getElementById('em-popover-status').textContent = 'Connecting...';
+  try {
+    const response = await fetch('/api/tavus-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create', user_name: window._currentUser?.name || 'Dave', persona: 'emily' })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.conversation_url) throw new Error(data.error || 'No conversation URL');
+    emilyConversationId = data.conversation_id;
+    emilyConversationUrl = data.conversation_url;
+    emilySessionActive = true;
+    if (typeof window.Daily === 'undefined') throw new Error('Daily.js not loaded');
+    const container = document.getElementById('em-daily-container');
+    emilyCallObject = window.Daily.createFrame(container, {
+      iframeStyle: { position:'absolute', top:'8px', left:'0', width:'100%', height:'520px', border:'none', borderRadius:'0' },
+      showLeaveButton: false,
+      showFullscreenButton: false
+    });
+    document.getElementById('em-popover-status').textContent = 'Joining call...';
+    await emilyCallObject.join({ url: emilyConversationUrl, startAudioOff: true, startVideoOff: false });
+    emilyCallObject.on('app-message', async (event) => {
+      const msg = event?.data || event;
+      const eventType = msg.event_type || msg.type || '';
+      if (eventType === 'conversation.tool_call') {
+        const fnName = msg.properties?.name || msg.tool_name || '';
+        const fnArgs = msg.properties?.parameters || msg.parameters || {};
+        emilyResetIdleTimer();
+        try {
+          const resp = await fetch('/api/emily-action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tool_name: fnName, parameters: fnArgs, conversation_id: emilyConversationId })
+          });
+          const result = await resp.json();
+          if (emilyCallObject?.sendAppMessage) {
+            emilyCallObject.sendAppMessage({ type:'tool_call_result', tool_call_id: msg.tool_call_id||'', result: result.result||'Done' });
+          }
+          if (emilyConversationId && result.result) {
+            await fetch('/api/tavus-speak', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ conversation_id: emilyConversationId, text: result.result }) });
+          }
+        } catch(e) { console.error('Emily tool call error:', e); }
+      }
+    });
+    emilyCameraOn = true;
+    emilyResetIdleTimer();
+    document.getElementById('em-popover-status').textContent = 'Live';
+    btn.textContent = 'Video Live';
+    emActionStatus('Video session started — hold the mic button to talk to Emily');
+  } catch(err) {
+    console.error('Emily video error:', err);
+    popover.style.display = 'none';
+    btn.textContent = 'Video Call with Emily';
+    btn.disabled = false;
+    emActionStatus('Video session failed: ' + err.message);
+  }
+}
+
+async function endEmilyVideo() {
+  if (emilyIdleTimer) { clearTimeout(emilyIdleTimer); emilyIdleTimer = null; }
+  if (emilyCallObject) {
+    try { await emilyCallObject.leave(); emilyCallObject.destroy(); } catch(e) {}
+    emilyCallObject = null;
+  }
+  if (emilyConversationId) {
+    try { await fetch('/api/tavus-session', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'end', conversation_id: emilyConversationId }) }); } catch(e) {}
+  }
+  emilyConversationId = null; emilySessionActive = false;
+  const popover = document.getElementById('em-video-popover');
+  if (popover) popover.style.display = 'none';
+  const container = document.getElementById('em-daily-container');
+  if (container) container.innerHTML = '<div style="position:absolute;top:0;left:0;right:0;height:50px;background:linear-gradient(#0f172a 10%,transparent);pointer-events:none;z-index:20;"></div>';
+  const btn = document.getElementById('em-start-video-btn');
+  if (btn) { btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg> Video Call with Emily'; btn.disabled = false; }
+}
+
+function toggleEmilyCamera() {
+  if (!emilyCallObject) return;
+  emilyCameraOn = !emilyCameraOn;
+  try { emilyCallObject.setLocalVideo(emilyCameraOn); } catch(e) {}
+  const on = document.getElementById('em-camera-icon-on');
+  const off = document.getElementById('em-camera-icon-off');
+  const btn = document.getElementById('em-camera-btn');
+  if (emilyCameraOn) { if(on)on.style.display=''; if(off)off.style.display='none'; if(btn){btn.style.background='#1a2f4e';btn.style.borderColor='#4a90d9';} }
+  else { if(on)on.style.display='none'; if(off)off.style.display=''; if(btn){btn.style.background='#dc2626';btn.style.borderColor='#dc2626';} }
+}
+
+function startEmilyPTT() {
+  if (!emilySessionActive || !emilyCallObject || emilyPttActive) return;
+  emilyPttActive = true;
+  const btn = document.getElementById('em-ptt-btn');
+  const status = document.getElementById('em-ptt-status');
+  btn.style.background = '#dc2626'; btn.style.borderColor = '#dc2626';
+  btn.style.boxShadow = '0 4px 24px rgba(220,38,38,0.5)'; btn.style.transform = 'scale(1.08)';
+  status.textContent = 'Listening...'; status.style.color = '#dc2626';
+  try { emilyCallObject.setLocalAudio(true); } catch(e) { stopEmilyPTT(); }
+  emilyResetIdleTimer();
+}
+
+function stopEmilyPTT() {
+  if (!emilyPttActive) return;
+  emilyPttActive = false;
+  const btn = document.getElementById('em-ptt-btn');
+  const status = document.getElementById('em-ptt-status');
+  btn.style.background = '#1a2f4e'; btn.style.borderColor = '#4a90d9';
+  btn.style.boxShadow = '0 4px 20px rgba(74,144,217,0.3)'; btn.style.transform = 'scale(1)';
+  status.textContent = 'Hold to talk'; status.style.color = '#64748b';
+  if (emilyCallObject) { try { emilyCallObject.setLocalAudio(false); } catch(e) {} }
+}
+
+function emActionStatus(msg) {
+  const msgs = document.getElementById('chat-messages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'text-align:center;padding:8px 16px;margin:8px 0;font-size:12px;color:#4a90d9;background:rgba(74,144,217,0.08);border-radius:8px;';
+  div.textContent = msg;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// Close popover on backdrop click
+document.addEventListener('DOMContentLoaded', function() {
+  const emPopover = document.getElementById('em-video-popover');
+  if (emPopover) emPopover.addEventListener('click', function(e) { if (e.target === emPopover) endEmilyVideo(); });
+});
 </script>
 </body>
 </html>
